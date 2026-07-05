@@ -1,0 +1,61 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}        # "Run workflow" button = publish now
+  schedule:
+    - cron: '17 * * * *'       # hourly rebuild to pick up newly-published content
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Build public site (reads content from Neon)
+        run: npm run build:web
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build admin app
+        run: npm run build:admin
+        env:
+          # Public by design (access gated by Neon Auth + RLS).
+          VITE_NEON_AUTH_URL: https://ep-super-rain-a6o7vmst.neonauth.us-west-2.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-super-rain-a6o7vmst.apirest.us-west-2.aws.neon.tech/neondb/rest/v1
+
+      - name: Assemble (admin under /admin)
+        run: |
+          rm -rf dist && mkdir -p dist
+          cp -r apps/web/dist/. dist/
+          mkdir -p dist/admin
+          cp -r apps/admin/dist/. dist/admin/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

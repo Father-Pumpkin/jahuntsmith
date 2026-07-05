@@ -1,0 +1,158 @@
+-- jahuntsmith.com — database schema (Neon Postgres 17)
+-- Applied to project spring-recipe-99608149 / branch main / database neondb.
+-- This file is the source of truth; re-running it is safe (idempotent).
+--
+-- Security model:
+--   * Public site reads at BUILD TIME via the neondb_owner connection (bypasses RLS).
+--   * Admin app writes at RUNTIME via the Neon Data API as role `authenticated`,
+--     restricted by RLS to users listed in `admins`.
+
+-- ── Admin allowlist ───────────────────────────────────────────
+create table if not exists admins (
+  user_id    text primary key,          -- Neon Auth user id (JWT `sub`)
+  email      text,
+  created_at timestamptz not null default now()
+);
+
+-- ── Resume ────────────────────────────────────────────────────
+create table if not exists profile (
+  id             smallint primary key default 1,
+  full_name      text not null default '',
+  headline       text not null default '',
+  summary        text not null default '',
+  email          text,
+  phone          text,
+  location       text,
+  links          jsonb not null default '[]'::jsonb,   -- [{label,url}]
+  resume_pdf_url text,                                  -- /assets/<id>.pdf
+  updated_at     timestamptz not null default now(),
+  constraint profile_singleton check (id = 1)
+);
+
+create table if not exists experiences (
+  id          uuid primary key default gen_random_uuid(),
+  company     text not null,
+  role        text not null,
+  location    text,
+  start_date  date,
+  end_date    date,                                     -- null = present
+  description text,                                      -- markdown
+  highlights  jsonb not null default '[]'::jsonb,        -- ["bullet", ...]
+  sort_order  int not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists education (
+  id          uuid primary key default gen_random_uuid(),
+  institution text not null,
+  credential  text,
+  field       text,
+  start_date  date,
+  end_date    date,
+  description text,
+  sort_order  int not null default 0
+);
+
+create table if not exists skills (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  category   text,
+  level      int,                                        -- optional 1..5
+  sort_order int not null default 0
+);
+
+create table if not exists projects (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  description text,
+  url         text,
+  tags        text[] not null default '{}',
+  sort_order  int not null default 0
+);
+
+-- ── Blog ──────────────────────────────────────────────────────
+create table if not exists posts (
+  id              uuid primary key default gen_random_uuid(),
+  slug            text unique not null,
+  title           text not null,
+  excerpt         text,
+  body            text not null default '',              -- markdown
+  cover_image_url text,
+  tags            text[] not null default '{}',
+  status          text not null default 'draft' check (status in ('draft','published')),
+  published_at    timestamptz,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+create index if not exists posts_status_pub_idx on posts(status, published_at desc);
+
+-- ── Uploaded files (resume PDF, blog images) ──────────────────
+-- Stored as base64; the build step materializes them to /assets/<id>.<ext>.
+create table if not exists assets (
+  id           uuid primary key default gen_random_uuid(),
+  kind         text not null default 'file',             -- 'resume' | 'image'
+  filename     text not null,
+  content_type text not null,
+  data         text not null,                            -- base64
+  byte_size    int,
+  created_at   timestamptz not null default now()
+);
+
+-- ── RLS helpers ───────────────────────────────────────────────
+create or replace function public.is_admin() returns boolean
+  language sql stable security definer set search_path = public, auth as $fn$
+  select exists (select 1 from public.admins a where a.user_id = auth.user_id())
+$fn$;
+
+create or replace function public.admins_count() returns bigint
+  language sql stable security definer set search_path = public as $fn$
+  select count(*) from public.admins
+$fn$;
+
+-- ── Row-Level Security ────────────────────────────────────────
+alter table admins      enable row level security;
+alter table profile     enable row level security;
+alter table experiences enable row level security;
+alter table education    enable row level security;
+alter table skills      enable row level security;
+alter table projects    enable row level security;
+alter table posts       enable row level security;
+alter table assets      enable row level security;
+
+-- Admins can read their own row; the FIRST authenticated user may self-claim
+-- admin while the table is empty (bootstrap). Claim it on your first login.
+drop policy if exists admins_select_self on admins;
+create policy admins_select_self on admins for select to authenticated
+  using (user_id = auth.user_id());
+drop policy if exists admins_bootstrap on admins;
+create policy admins_bootstrap on admins for insert to authenticated
+  with check (user_id = auth.user_id() and public.admins_count() = 0);
+
+-- All content: full access to admins only.
+drop policy if exists profile_admin_all on profile;
+create policy profile_admin_all on profile for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists experiences_admin_all on experiences;
+create policy experiences_admin_all on experiences for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists education_admin_all on education;
+create policy education_admin_all on education for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists skills_admin_all on skills;
+create policy skills_admin_all on skills for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists projects_admin_all on projects;
+create policy projects_admin_all on projects for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists posts_admin_all on posts;
+create policy posts_admin_all on posts for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists assets_admin_all on assets;
+create policy assets_admin_all on assets for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- ── Grants for the Data API `authenticated` role ──────────────
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;

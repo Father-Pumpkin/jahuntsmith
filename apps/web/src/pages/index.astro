@@ -1,0 +1,89 @@
+---
+import Base from '../layouts/Base.astro';
+import { getProfile, getExperiences, getEducation, getSkills, getProjects } from '../lib/content';
+import { marked } from 'marked';
+
+const [profile, experiences, education, skills, projects] = await Promise.all([
+  getProfile(),
+  getExperiences(),
+  getEducation(),
+  getSkills(),
+  getProjects(),
+]);
+
+const fmt = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+const range = (s: string | null, e: string | null) => `${fmt(s)} – ${e ? fmt(e) : 'Present'}`;
+---
+
+<Base title={`${profile?.full_name ?? 'Resume'} — jahuntsmith`} description={profile?.summary}>
+  <section>
+    <h1>{profile?.full_name}</h1>
+    <p class="headline">{profile?.headline}</p>
+    <p class="summary" set:html={marked.parseInline(profile?.summary ?? '')} />
+    <div class="meta-row">
+      {profile?.location && <span>{profile.location}</span>}
+      {profile?.email && <a href={`mailto:${profile.email}`}>{profile.email}</a>}
+      {(profile?.links ?? []).map((l) => <a href={l.url} target="_blank" rel="noopener">{l.label}</a>)}
+    </div>
+    {profile?.resume_pdf_url && (
+      <a class="download" href={profile.resume_pdf_url} download>↓ Download résumé (PDF)</a>
+    )}
+  </section>
+
+  {experiences.length > 0 && (
+    <section>
+      <h2>Experience</h2>
+      {experiences.map((x) => (
+        <div class="entry">
+          <div class="entry-head">
+            <h3>{x.role} <span class="role">· {x.company}</span></h3>
+            <span class="dates">{range(x.start_date, x.end_date)}</span>
+          </div>
+          {x.location && <div class="muted">{x.location}</div>}
+          {x.description && <div set:html={marked.parse(x.description)} />}
+          {Array.isArray(x.highlights) && x.highlights.length > 0 && (
+            <ul>{x.highlights.map((h) => <li>{h}</li>)}</ul>
+          )}
+        </div>
+      ))}
+    </section>
+  )}
+
+  {projects.length > 0 && (
+    <section>
+      <h2>Projects</h2>
+      {projects.map((p: any) => (
+        <div class="entry">
+          <div class="entry-head">
+            <h3>{p.url ? <a href={p.url} target="_blank" rel="noopener">{p.name}</a> : p.name}</h3>
+          </div>
+          {p.description && <div class="muted">{p.description}</div>}
+          {p.tags?.length > 0 && <div class="pills" style="margin-top:.4rem">{p.tags.map((t: string) => <span class="pill">{t}</span>)}</div>}
+        </div>
+      ))}
+    </section>
+  )}
+
+  {education.length > 0 && (
+    <section>
+      <h2>Education</h2>
+      {education.map((ed: any) => (
+        <div class="entry">
+          <div class="entry-head">
+            <h3>{ed.institution}</h3>
+            <span class="dates">{range(ed.start_date, ed.end_date)}</span>
+          </div>
+          <div class="muted">{[ed.credential, ed.field].filter(Boolean).join(', ')}</div>
+        </div>
+      ))}
+    </section>
+  )}
+
+  {skills.length > 0 && (
+    <section>
+      <h2>Skills</h2>
+      <div class="pills">{skills.map((s: any) => <span class="pill">{s.name}</span>)}</div>
+    </section>
+  )}
+</Base>
