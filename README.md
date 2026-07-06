@@ -99,8 +99,20 @@ Content edits land in Neon instantly, but the **public site only changes when it
 
 ## Admin tabs
 
-Every resume section and the blog are managed from the admin — no SQL needed:
-**Profile** (incl. headshot upload), **Experience**, **Education**, **Skills**,
-**Projects**, **Blog posts**, and **Résumé PDF**. Education / Skills / Projects use the
-generic `CollectionEditor.tsx` (field-config-driven CRUD); to add another collection,
-give it a Postgres table + RLS and drop in another `<CollectionEditor>` in `App.tsx`.
+Managed from the admin — no SQL needed:
+
+- **Profile** — name, headline, summary, contact, links, headshot (the home hero).
+- **Pages & sections** — the page composer. Create top-level nav **pages** (drag to
+  reorder the nav), and within each page add **sections** with a custom header and a
+  layout **kind**: `timeline` (dated entries + bullets), `cards` (grid w/ links/tags),
+  `list`, `tags` (pill cloud), or `richtext` (markdown). Sections and their items are
+  drag-reorderable. Renders via `pages` → `sections` → `section_items` (see schema).
+- **Blog posts** — draft/publish editor.
+- **Résumé PDF** — upload/replace the downloadable PDF.
+
+Web rendering: `index.astro` (home = hero + home sections), `[page].astro` (custom
+pages), and `components/Section.astro` (draws each kind). Admin: `ContentManager` →
+`SectionsPanel` → `ItemsEditor`.
+
+> After adding new tables, refresh the Neon Data API schema cache (re-run
+> `provision_neon_data_api` or the console button) or the admin will 404 on them.

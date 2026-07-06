@@ -103,6 +103,15 @@ section.block > h2 {
 /* ── Blog ────────────────────────────────────────────── */
 .page-title { padding: 3.5rem 0 1rem; }
 .page-title h1 { font-size: 3rem; font-weight: 600; color: var(--navy); }
+.page-title .subtitle { font-size: 1.2rem; color: var(--text-grey); font-weight: 300; margin-top: 0.25rem; }
+
+/* Section: rich text + plain list */
+.richtext > :is(p, ul, ol) { margin: 0 0 1rem; color: var(--text-grey); }
+.richtext > :is(h2, h3) { color: var(--navy); margin: 1.5rem 0 0.5rem; }
+.richtext a { text-decoration: underline; }
+.plain-list { list-style: none; padding: 0; }
+.plain-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--medium-grey); color: var(--text-grey); }
+.plain-list li:last-child { border-bottom: none; }
 .post-list { list-style: none; }
 .post-list li { padding: 1.75rem 0; border-bottom: 1px solid var(--medium-grey); }
 .post-list li:first-child { border-top: 1px solid var(--medium-grey); }

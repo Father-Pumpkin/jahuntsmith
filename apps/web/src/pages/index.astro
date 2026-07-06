@@ -1,19 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
-import { getProfile, getExperiences, getEducation, getSkills, getProjects } from '../lib/content';
+import Section from '../components/Section.astro';
+import { getProfile, getPageContent } from '../lib/content';
 import { marked } from 'marked';
 
-const [profile, experiences, education, skills, projects] = await Promise.all([
-  getProfile(),
-  getExperiences(),
-  getEducation(),
-  getSkills(),
-  getProjects(),
-]);
-
-const fmt = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
-const range = (s: string | null, e: string | null) => `${fmt(s)} – ${e ? fmt(e) : 'Present'}`;
+const [profile, content] = await Promise.all([getProfile(), getPageContent('home')]);
 
 const initials = (profile?.full_name ?? '')
   .split(/\s+/)
@@ -23,7 +14,7 @@ const initials = (profile?.full_name ?? '')
   .join('');
 ---
 
-<Base title={`${profile?.full_name ?? 'Resume'} — jahuntsmith`} description={profile?.summary}>
+<Base title={`${profile?.full_name ?? 'Home'} — jahuntsmith`} description={profile?.summary}>
   <div class="wrap">
     <section class="hero">
       {profile?.avatar_url ? (
@@ -47,62 +38,6 @@ const initials = (profile?.full_name ?? '')
       </div>
     </section>
 
-    {experiences.length > 0 && (
-      <section class="block">
-        <h2>Experience</h2>
-        {experiences.map((x) => (
-          <div class="entry">
-            <div class="entry-head">
-              <h3>{x.role} <span class="role">· {x.company}</span></h3>
-              <span class="dates">{range(x.start_date, x.end_date)}</span>
-            </div>
-            {x.location && <div class="place">{x.location}</div>}
-            {x.description && <div set:html={marked.parse(x.description)} />}
-            {Array.isArray(x.highlights) && x.highlights.length > 0 && (
-              <ul>{x.highlights.map((h) => <li>{h}</li>)}</ul>
-            )}
-          </div>
-        ))}
-      </section>
-    )}
-
-    {projects.length > 0 && (
-      <section class="block">
-        <h2>Projects</h2>
-        <div class="cards">
-          {projects.map((p: any) => (
-            <div class="card">
-              <h3>{p.url ? <a href={p.url} target="_blank" rel="noopener">{p.name}</a> : p.name}</h3>
-              {p.description && <p>{p.description}</p>}
-              {p.tags?.length > 0 && (
-                <div class="pills" style="margin-top:.75rem">{p.tags.map((t: string) => <span class="pill">{t}</span>)}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-    )}
-
-    {education.length > 0 && (
-      <section class="block">
-        <h2>Education</h2>
-        {education.map((ed: any) => (
-          <div class="entry">
-            <div class="entry-head">
-              <h3>{ed.institution}</h3>
-              <span class="dates">{range(ed.start_date, ed.end_date)}</span>
-            </div>
-            <div class="place">{[ed.credential, ed.field].filter(Boolean).join(', ')}</div>
-          </div>
-        ))}
-      </section>
-    )}
-
-    {skills.length > 0 && (
-      <section class="block">
-        <h2>Skills</h2>
-        <div class="pills">{skills.map((s: any) => <span class="pill">{s.name}</span>)}</div>
-      </section>
-    )}
+    {content?.sections.map((s) => <Section section={s} />)}
   </div>
 </Base>

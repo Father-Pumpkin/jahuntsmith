@@ -1,0 +1,62 @@
+---
+import { marked } from 'marked';
+import type { Section } from '../lib/content';
+
+interface Props {
+  section: Section;
+}
+const { section } = Astro.props;
+
+const fmt = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+const range = (s: string | null, e: string | null) => `${fmt(s)} – ${e ? fmt(e) : 'Present'}`;
+const tags = (section.body || '').split(/[,\n]/).map((t) => t.trim()).filter(Boolean);
+---
+
+<section class="block">
+  {section.title && <h2>{section.title}</h2>}
+
+  {section.kind === 'richtext' && <div class="richtext" set:html={marked.parse(section.body || '')} />}
+
+  {section.kind === 'tags' && <div class="pills">{tags.map((t) => <span class="pill">{t}</span>)}</div>}
+
+  {section.kind === 'timeline' &&
+    section.items.map((it) => (
+      <div class="entry">
+        <div class="entry-head">
+          <h3>{it.title}{it.subtitle && <span class="role"> · {it.subtitle}</span>}</h3>
+          {(it.date_start || it.date_end) && <span class="dates">{range(it.date_start, it.date_end)}</span>}
+        </div>
+        {it.meta && <div class="place">{it.meta}</div>}
+        {it.body && <div set:html={marked.parse(it.body)} />}
+        {Array.isArray(it.bullets) && it.bullets.length > 0 && (
+          <ul>{it.bullets.map((b) => <li>{b}</li>)}</ul>
+        )}
+      </div>
+    ))}
+
+  {section.kind === 'cards' && (
+    <div class="cards">
+      {section.items.map((it) => (
+        <div class="card">
+          <h3>{it.url ? <a href={it.url} target="_blank" rel="noopener">{it.title}</a> : it.title}</h3>
+          {it.body && <p>{it.body}</p>}
+          {it.tags?.length > 0 && (
+            <div class="pills" style="margin-top:.75rem">{it.tags.map((t) => <span class="pill">{t}</span>)}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+
+  {section.kind === 'list' && (
+    <ul class="plain-list">
+      {section.items.map((it) => (
+        <li>
+          {it.url ? <a href={it.url} target="_blank" rel="noopener">{it.title}</a> : <strong>{it.title}</strong>}
+          {it.subtitle && <span class="muted"> — {it.subtitle}</span>}
+        </li>
+      ))}
+    </ul>
+  )}
+</section>

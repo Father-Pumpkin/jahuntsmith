@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { getNavPages } from '../lib/content';
 
 interface Props {
   title: string;
@@ -8,6 +9,10 @@ interface Props {
 const { title, description = 'Resume and writing by J. A. Huntsmith.' } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const year = new Date().getFullYear();
+
+const navPages = await getNavPages();
+const here = Astro.url.pathname.replace(/\/$/, '') || '/';
+const hrefFor = (p: { slug: string; is_home: boolean }) => (p.is_home ? '/' : `/${p.slug}`);
 ---
 
 <!doctype html>
@@ -34,8 +39,10 @@ const year = new Date().getFullYear();
       <div class="wrap">
         <a class="brand" href="/">jahuntsmith</a>
         <nav class="nav">
-          <a href="/">Resume</a>
-          <a href="/blog">Blog</a>
+          {navPages.map((p) => (
+            <a href={hrefFor(p)} class={here === hrefFor(p) ? 'active' : ''}>{p.nav_label}</a>
+          ))}
+          <a href="/blog" class={here.startsWith('/blog') ? 'active' : ''}>Blog</a>
         </nav>
       </div>
     </header>

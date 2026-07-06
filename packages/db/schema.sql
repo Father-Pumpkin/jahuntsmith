@@ -38,6 +38,9 @@ create table if not exists profile (
   constraint profile_singleton check (id = 1)
 );
 
+-- NOTE: experiences/education/skills/projects are SUPERSEDED by the page
+-- composer (pages/sections/section_items) below. Kept for reference; not
+-- rendered or edited anymore. `profile` (the hero) is still used.
 create table if not exists experiences (
   id          uuid primary key default gen_random_uuid(),
   company     text not null,
@@ -107,6 +110,52 @@ create table if not exists assets (
   created_at   timestamptz not null default now()
 );
 
+-- ── Page composer (multi-page, user-defined sections) ────────
+-- A page has ordered sections; each section has a layout `kind` and either a
+-- `body` (richtext/tags) or ordered `section_items` (timeline/cards/list).
+create table if not exists pages (
+  id         uuid primary key default gen_random_uuid(),
+  slug       text unique not null,          -- 'home' is the apex '/'
+  nav_label  text not null,
+  subtitle   text,
+  sort_order int not null default 0,
+  visible    boolean not null default true,
+  is_home    boolean not null default false
+);
+
+create table if not exists sections (
+  id         uuid primary key default gen_random_uuid(),
+  page_id    uuid not null references pages(id) on delete cascade,
+  title      text not null default '',       -- the custom header
+  kind       text not null default 'timeline'
+             check (kind in ('timeline','cards','list','tags','richtext')),
+  body       text not null default '',        -- richtext markdown / tags list
+  options    jsonb not null default '{}'::jsonb,
+  sort_order int not null default 0,
+  visible    boolean not null default true
+);
+create index if not exists sections_page_idx on sections(page_id, sort_order);
+
+create table if not exists section_items (
+  id         uuid primary key default gen_random_uuid(),
+  section_id uuid not null references sections(id) on delete cascade,
+  title      text not null default '',
+  subtitle   text,
+  meta       text,
+  date_start date,
+  date_end   date,
+  body       text,
+  url        text,
+  tags       text[] not null default '{}',
+  bullets    jsonb not null default '[]'::jsonb,
+  sort_order int not null default 0
+);
+create index if not exists section_items_section_idx on section_items(section_id, sort_order);
+
+-- NOTE: after adding tables the Neon Data API schema cache must be refreshed
+-- (re-run provision_neon_data_api, or the "Refresh schema cache" console button);
+-- `NOTIFY pgrst, 'reload schema'` alone was not reliable here.
+
 -- ── RLS helpers ───────────────────────────────────────────────
 create or replace function public.is_admin() returns boolean
   language sql stable security definer set search_path = public, auth as $fn$
@@ -166,6 +215,20 @@ create policy posts_admin_all on posts for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 drop policy if exists assets_admin_all on assets;
 create policy assets_admin_all on assets for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- Page composer tables: admin-only, same pattern.
+alter table pages         enable row level security;
+alter table sections      enable row level security;
+alter table section_items enable row level security;
+drop policy if exists pages_admin_all on pages;
+create policy pages_admin_all on pages for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists sections_admin_all on sections;
+create policy sections_admin_all on sections for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists section_items_admin_all on section_items;
+create policy section_items_admin_all on section_items for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
 -- ── Grants for the Data API `authenticated` role ──────────────

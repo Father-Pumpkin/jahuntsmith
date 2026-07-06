@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/Section.astro';
+import { getContentPageSlugs, getPageContent } from '../lib/content';
+
+export async function getStaticPaths() {
+  const slugs = await getContentPageSlugs();
+  return slugs.map((slug) => ({ params: { page: slug } }));
+}
+
+const { page: slug } = Astro.params;
+// Slugs come from getStaticPaths (existing visible pages), so content is present.
+const content = (await getPageContent(slug!))!;
+const { page, sections } = content;
+---
+
+<Base title={`${page.nav_label} — jahuntsmith`} description={page.subtitle ?? undefined}>
+  <div class="wrap">
+    <div class="page-title">
+      <h1>{page.nav_label}</h1>
+      {page.subtitle && <p class="subtitle">{page.subtitle}</p>}
+    </div>
+    {sections.map((s) => <Section section={s} />)}
+  </div>
+</Base>

@@ -77,13 +77,12 @@ export async function listTable(table: string, orderBy = 'sort_order') {
 }
 
 export async function upsertRow(table: string, row: Record<string, unknown>) {
-  if (row.id) {
-    const { error } = await client.from(table).update(row).eq('id', row.id as string);
+  const { id, ...rest } = row as Record<string, unknown>;
+  if (id) {
+    const { error } = await client.from(table).update(rest).eq('id', id as string);
     if (error) throw new Error(error.message);
   } else {
-    const { id, ...insert } = row as Record<string, unknown>;
-    void id;
-    const { error } = await client.from(table).insert(insert);
+    const { error } = await client.from(table).insert(rest);
     if (error) throw new Error(error.message);
   }
 }
@@ -108,6 +107,41 @@ export async function upsertPost(row: Record<string, unknown>) {
     if (error) throw new Error(error.message);
   } else {
     const { error } = await client.from('posts').insert({ ...row, updated_at: now });
+    if (error) throw new Error(error.message);
+  }
+}
+
+// ── Pages / sections / items (page composer) ──────────────────
+export async function listPages() {
+  const { data, error } = await client.from('pages').select('*').order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function listSections(pageId: string) {
+  const { data, error } = await client
+    .from('sections')
+    .select('*')
+    .eq('page_id', pageId)
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function listItems(sectionId: string) {
+  const { data, error } = await client
+    .from('section_items')
+    .select('*')
+    .eq('section_id', sectionId)
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/** Persist a new ordering by writing sort_order = array index for each id. */
+export async function saveOrder(table: string, ids: string[]) {
+  for (let i = 0; i < ids.length; i++) {
+    const { error } = await client.from(table).update({ sort_order: i }).eq('id', ids[i]);
     if (error) throw new Error(error.message);
   }
 }
