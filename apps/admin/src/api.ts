@@ -69,6 +69,25 @@ export async function deleteRow(table: string, id: string) {
   if (error) throw new Error(error.message);
 }
 
+// ── Generic collection CRUD (education / skills / projects) ────
+export async function listTable(table: string, orderBy = 'sort_order') {
+  const { data, error } = await client.from(table).select('*').order(orderBy, { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function upsertRow(table: string, row: Record<string, unknown>) {
+  if (row.id) {
+    const { error } = await client.from(table).update(row).eq('id', row.id as string);
+    if (error) throw new Error(error.message);
+  } else {
+    const { id, ...insert } = row as Record<string, unknown>;
+    void id;
+    const { error } = await client.from(table).insert(insert);
+    if (error) throw new Error(error.message);
+  }
+}
+
 // ── Posts ─────────────────────────────────────────────────────
 export async function listPosts() {
   const { data, error } = await client

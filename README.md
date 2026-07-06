@@ -91,9 +91,10 @@ Content edits land in Neon instantly, but the **public site only changes when it
   (e.g. a Cloudflare Worker calling `repository_dispatch`). Not built — scheduled + manual
   covers it.
 
-## Extending
+## Admin tabs
 
-The admin ships editors for **Profile**, **Experience**, **Blog posts**, and **Résumé PDF**.
-The `education`, `skills`, and `projects` tables already exist and render on the public
-site — add editors for them by copying `ExperiencesEditor.tsx` (same CRUD shape via
-`client.from('<table>')`).
+Every resume section and the blog are managed from the admin — no SQL needed:
+**Profile** (incl. headshot upload), **Experience**, **Education**, **Skills**,
+**Projects**, **Blog posts**, and **Résumé PDF**. Education / Skills / Projects use the
+generic `CollectionEditor.tsx` (field-config-driven CRUD); to add another collection,
+give it a Postgres table + RLS and drop in another `<CollectionEditor>` in `App.tsx`.

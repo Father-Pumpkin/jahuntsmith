@@ -5,9 +5,10 @@ import ProfileEditor from './components/ProfileEditor';
 import ExperiencesEditor from './components/ExperiencesEditor';
 import PostsEditor from './components/PostsEditor';
 import ResumeUpload from './components/ResumeUpload';
+import CollectionEditor from './components/CollectionEditor';
 
 type Status = 'loading' | 'signedout' | 'notadmin' | 'ready';
-type Tab = 'profile' | 'experience' | 'posts' | 'resume';
+type Tab = 'profile' | 'experience' | 'education' | 'skills' | 'projects' | 'posts' | 'resume';
 
 export default function App() {
   const [status, setStatus] = useState<Status>('loading');
@@ -77,12 +78,63 @@ export default function App() {
       <nav className="tabs">
         <button className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>Profile</button>
         <button className={tab === 'experience' ? 'active' : ''} onClick={() => setTab('experience')}>Experience</button>
+        <button className={tab === 'education' ? 'active' : ''} onClick={() => setTab('education')}>Education</button>
+        <button className={tab === 'skills' ? 'active' : ''} onClick={() => setTab('skills')}>Skills</button>
+        <button className={tab === 'projects' ? 'active' : ''} onClick={() => setTab('projects')}>Projects</button>
         <button className={tab === 'posts' ? 'active' : ''} onClick={() => setTab('posts')}>Blog posts</button>
         <button className={tab === 'resume' ? 'active' : ''} onClick={() => setTab('resume')}>Résumé PDF</button>
       </nav>
 
       {tab === 'profile' && <ProfileEditor />}
       {tab === 'experience' && <ExperiencesEditor />}
+      {tab === 'education' && (
+        <CollectionEditor
+          table="education"
+          singular="education"
+          required={['institution']}
+          fields={[
+            { key: 'institution', label: 'Institution', type: 'text' },
+            { key: 'credential', label: 'Credential', type: 'text', placeholder: 'B.S., Ph.D., …' },
+            { key: 'field', label: 'Field of study', type: 'text' },
+            { key: 'start_date', label: 'Start (YYYY-MM-DD)', type: 'date', placeholder: '2016-09-01' },
+            { key: 'end_date', label: 'End (blank = present)', type: 'date' },
+            { key: 'sort_order', label: 'Sort', type: 'number' },
+            { key: 'description', label: 'Description', type: 'textarea' },
+          ]}
+          title={(r) => r.institution}
+          meta={(r) => [r.credential, r.field].filter(Boolean).join(', ')}
+        />
+      )}
+      {tab === 'skills' && (
+        <CollectionEditor
+          table="skills"
+          singular="skill"
+          required={['name']}
+          fields={[
+            { key: 'name', label: 'Name', type: 'text' },
+            { key: 'category', label: 'Category', type: 'text', placeholder: 'optional grouping' },
+            { key: 'sort_order', label: 'Sort', type: 'number' },
+          ]}
+          title={(r) => r.name}
+          meta={(r) => r.category ?? ''}
+        />
+      )}
+      {tab === 'projects' && (
+        <CollectionEditor
+          table="projects"
+          singular="project"
+          required={['name']}
+          fields={[
+            { key: 'name', label: 'Name', type: 'text' },
+            { key: 'url', label: 'URL', type: 'text', placeholder: 'https://…' },
+            { key: 'sort_order', label: 'Sort', type: 'number' },
+            { key: 'description', label: 'Description', type: 'textarea' },
+            { key: 'tags', label: 'Tags', type: 'tags' },
+          ]}
+          title={(r) => r.name}
+          meta={(r) => (r.tags ?? []).join(', ')}
+        />
+      )}
       {tab === 'posts' && <PostsEditor />}
       {tab === 'resume' && <ResumeUpload />}
     </div>
