@@ -20,6 +20,16 @@ const hrefFor = (p: { slug: string; is_home: boolean }) => (p.is_home ? '/' : `/
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      // Set theme before paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -43,6 +53,9 @@ const hrefFor = (p: { slug: string; is_home: boolean }) => (p.is_home ? '/' : `/
             <a href={hrefFor(p)} class={here === hrefFor(p) ? 'active' : ''}>{p.nav_label}</a>
           ))}
           <a href="/blog" class={here.startsWith('/blog') ? 'active' : ''}>Blog</a>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light and dark theme">
+            <span class="i-sun">☀</span><span class="i-moon">☾</span>
+          </button>
         </nav>
       </div>
     </header>
@@ -52,5 +65,14 @@ const hrefFor = (p: { slug: string; is_home: boolean }) => (p.is_home ? '/' : `/
     <footer class="site-footer">
       <div class="wrap">© {year} J. A. Huntsmith · <a href="/rss.xml">RSS</a></div>
     </footer>
+    <script is:inline>
+      document.getElementById('theme-toggle')?.addEventListener('click', function () {
+        var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem('theme', next);
+        } catch (e) {}
+      });
+    </script>
   </body>
 </html>

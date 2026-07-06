@@ -9,6 +9,19 @@
   --white: #ffffff;
   --max: 1120px;
   --radius: 8px;
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  --navy: #e7edf5;        /* headings / brand / card titles */
+  --dark-navy: #0a0d12;   /* code blocks */
+  --charcoal: #dfe3ea;    /* body text */
+  --light-grey: #0e1117;  /* page background */
+  --medium-grey: #262b33; /* borders */
+  --text-grey: #9aa4b2;   /* secondary text */
+  --accent: #6ea8ff;
+  --white: #171b22;       /* nav / cards / pills surface */
+  color-scheme: dark;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,6 +33,7 @@ body {
   line-height: 1.7;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 h1, h2, h3, .serif { font-family: 'Cormorant Garamond', Georgia, serif; }
@@ -42,6 +56,17 @@ a:hover { text-decoration: underline; }
 .brand:hover { text-decoration: none; }
 .nav a { color: var(--text-grey); margin-left: 1.75rem; font-size: 0.95rem; transition: color 0.2s ease; }
 .nav a:hover { color: var(--navy); text-decoration: none; }
+.theme-toggle {
+  margin-left: 1.5rem; background: none; border: 1px solid var(--medium-grey);
+  color: var(--text-grey); border-radius: 999px; width: 2rem; height: 2rem;
+  display: inline-grid; place-items: center; cursor: pointer; font-size: 0.95rem;
+  line-height: 1; transition: color 0.2s ease, border-color 0.2s ease;
+}
+.theme-toggle:hover { color: var(--navy); border-color: var(--accent); }
+.theme-toggle .i-sun { display: none; }
+.theme-toggle .i-moon { display: inline; }
+html[data-theme='dark'] .theme-toggle .i-sun { display: inline; }
+html[data-theme='dark'] .theme-toggle .i-moon { display: none; }
 
 main { min-height: 60vh; }
 
@@ -56,7 +81,7 @@ main { min-height: 60vh; }
 }
 .hero-placeholder {
   display: grid; place-items: center;
-  background: linear-gradient(160deg, var(--navy), var(--dark-navy));
+  background: linear-gradient(160deg, #1a3a52, #0f2537);
   color: #cfe0f0; font-family: 'Cormorant Garamond', serif; font-size: 4rem;
 }
 .hero-content h1 { font-size: 3rem; font-weight: 600; color: var(--navy); line-height: 1.1; margin-bottom: 0.75rem; }
@@ -68,7 +93,7 @@ main { min-height: 60vh; }
   background: var(--navy); color: var(--white) !important; padding: 0.6rem 1.15rem;
   border-radius: var(--radius); font-size: 0.9rem; transition: background 0.2s ease;
 }
-.btn-download:hover { background: var(--dark-navy); text-decoration: none; }
+.btn-download:hover { filter: brightness(0.92); text-decoration: none; }
 
 /* ── Sections ────────────────────────────────────────── */
 section.block { padding: 2.5rem 0; border-top: 1px solid var(--medium-grey); }
