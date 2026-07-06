@@ -11,6 +11,7 @@ export type Profile = {
   location: string | null;
   links: Link[];
   resume_pdf_url: string | null;
+  avatar_url: string | null;
 };
 
 export type Experience = {

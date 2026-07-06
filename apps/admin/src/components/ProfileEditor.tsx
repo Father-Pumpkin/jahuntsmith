@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getProfile, saveProfile } from '../api';
+import { getProfile, saveProfile, uploadAsset } from '../api';
 
 type Link = { label: string; url: string };
 
@@ -47,8 +47,36 @@ export default function ProfileEditor() {
     }
   }
 
+  async function onAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const url = await uploadAsset(file, 'image');
+      await saveProfile({ avatar_url: url });
+      setForm({ ...form, avatar_url: url });
+      setMsg('Headshot uploaded. It appears on the site after the next build.');
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div>
+      <label>Headshot</label>
+      <div className="row" style={{ alignItems: 'center' }}>
+        {form.avatar_url ? (
+          <img src={form.avatar_url} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, flex: '0 0 auto' }} />
+        ) : (
+          <span className="muted" style={{ flex: '0 0 auto' }}>No headshot yet</span>
+        )}
+        <input type="file" accept="image/*" onChange={onAvatar} disabled={busy} />
+      </div>
+
       <label>Full name</label>
       <input value={form.full_name ?? ''} onChange={set('full_name')} />
       <label>Headline</label>

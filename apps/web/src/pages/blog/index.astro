@@ -8,9 +8,9 @@ const fmt = (d: string | null) =>
 ---
 
 <Base title="Blog — jahuntsmith" description="Writing by J. A. Huntsmith.">
-  <section>
-    <h1>Blog</h1>
-    {posts.length === 0 && <p class="muted">No posts yet. Check back soon.</p>}
+  <div class="wrap">
+    <div class="page-title"><h1>Blog</h1></div>
+    {posts.length === 0 && <p style="color:var(--text-grey)">No posts yet. Check back soon.</p>}
     <ul class="post-list">
       {posts.map((p) => (
         <li>
@@ -20,5 +20,5 @@ const fmt = (d: string | null) =>
         </li>
       ))}
     </ul>
-  </section>
+  </div>
 </Base>

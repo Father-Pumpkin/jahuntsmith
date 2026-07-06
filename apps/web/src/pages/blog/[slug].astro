@@ -15,14 +15,16 @@ const html = marked.parse(post.body ?? '');
 ---
 
 <Base title={`${post.title} — jahuntsmith`} description={post.excerpt ?? undefined}>
-  <article class="article">
-    <a class="back" href="/blog">← All posts</a>
-    <h1 style="margin-top:1rem">{post.title}</h1>
-    <p class="muted">{fmt(post.published_at)}</p>
-    {post.cover_image_url && <img src={post.cover_image_url} alt="" />}
-    <div set:html={html} />
-    {post.tags?.length > 0 && (
-      <div class="pills" style="margin-top:2rem">{post.tags.map((t) => <span class="pill">{t}</span>)}</div>
-    )}
-  </article>
+  <div class="wrap">
+    <article class="article">
+      <a class="back" href="/blog">← All posts</a>
+      <h1>{post.title}</h1>
+      <p class="date">{fmt(post.published_at)}</p>
+      {post.cover_image_url && <img src={post.cover_image_url} alt="" />}
+      <div set:html={html} />
+      {post.tags?.length > 0 && (
+        <div class="pills" style="margin-top:2.5rem">{post.tags.map((t) => <span class="pill">{t}</span>)}</div>
+      )}
+    </article>
+  </div>
 </Base>

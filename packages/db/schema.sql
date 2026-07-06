@@ -25,6 +25,7 @@ create table if not exists profile (
   location       text,
   links          jsonb not null default '[]'::jsonb,   -- [{label,url}]
   resume_pdf_url text,                                  -- /assets/<id>.pdf
+  avatar_url     text,                                  -- /assets/<id>.<ext> (headshot)
   updated_at     timestamptz not null default now(),
   constraint profile_singleton check (id = 1)
 );
