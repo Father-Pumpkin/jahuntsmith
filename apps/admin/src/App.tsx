@@ -46,7 +46,7 @@ export default function App() {
 
   if (status === 'loading') return <div className="center muted">Loading…</div>;
 
-  if (status === 'signedout') return <LoginView onDone={refresh} />;
+  if (status === 'signedout') return <LoginView />;
 
   if (status === 'notadmin') {
     return (
@@ -141,28 +141,20 @@ export default function App() {
   );
 }
 
-function LoginView({ onDone }: { onDone: () => void }) {
-  const [mode, setMode] = useState<'in' | 'up'>('in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+function LoginView() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function google() {
     setBusy(true);
     setErr(null);
     try {
-      const res =
-        mode === 'in'
-          ? await client.auth.signIn.email({ email, password })
-          : await client.auth.signUp.email({ email, password, name: name || email });
-      if (res.error) {
-        setErr(res.error.message ?? 'Authentication failed.');
-      } else {
-        onDone();
-      }
+      // Redirects to Google, then back to /admin/. On return, App re-checks the session.
+      const res = await client.auth.signIn.social({
+        provider: 'google',
+        callbackURL: window.location.origin + import.meta.env.BASE_URL,
+      });
+      if (res?.error) setErr(res.error.message ?? 'Sign-in failed.');
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -172,29 +164,16 @@ function LoginView({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="center">
-      <form className="card" onSubmit={submit}>
-        <h1>{mode === 'in' ? 'Sign in' : 'Create admin account'}</h1>
-        {mode === 'up' && (
-          <>
-            <label>Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-          </>
-        )}
-        <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-        <label>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} required />
+      <div className="card">
+        <h1>jahuntsmith · admin</h1>
+        <p className="note" style={{ marginBottom: '1.25rem' }}>
+          Sign in with an authorized Google account.
+        </p>
+        <button className="btn" style={{ width: '100%' }} onClick={google} disabled={busy}>
+          {busy ? 'Redirecting…' : 'Sign in with Google'}
+        </button>
         {err && <p className="err">{err}</p>}
-        <div className="actions">
-          <button className="btn" type="submit" disabled={busy}>
-            {busy ? '…' : mode === 'in' ? 'Sign in' : 'Sign up'}
-          </button>
-          <div className="spacer" />
-          <button type="button" className="link" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
-            {mode === 'in' ? 'Create account' : 'Have an account? Sign in'}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

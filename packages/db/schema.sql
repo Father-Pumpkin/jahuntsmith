@@ -8,6 +8,14 @@
 --     restricted by RLS to users listed in `admins`.
 
 -- ── Admin allowlist ───────────────────────────────────────────
+-- Access model: a user may edit content only if their Neon Auth (Google)
+-- account email is in `admin_emails`. On first login an allowlisted user
+-- self-provisions their `admins` row; everyone else is refused.
+create table if not exists admin_emails (
+  email    text primary key,             -- normalized lowercase
+  added_at timestamptz not null default now()
+);
+
 create table if not exists admins (
   user_id    text primary key,          -- Neon Auth user id (JWT `sub`)
   email      text,
@@ -105,12 +113,19 @@ create or replace function public.is_admin() returns boolean
   select exists (select 1 from public.admins a where a.user_id = auth.user_id())
 $fn$;
 
-create or replace function public.admins_count() returns bigint
-  language sql stable security definer set search_path = public as $fn$
-  select count(*) from public.admins
+-- Is the CURRENT authenticated user's email on the allowlist? Reads the email
+-- from Neon Auth's synced user table (never trusts client-supplied values).
+create or replace function public.email_allowed() returns boolean
+  language sql stable security definer set search_path = public, auth, neon_auth as $fn$
+  select exists (
+    select 1 from neon_auth."user" u
+    where u.id = auth.uid()
+      and lower(u.email) in (select lower(email) from public.admin_emails)
+  )
 $fn$;
 
 -- ── Row-Level Security ────────────────────────────────────────
+alter table admin_emails enable row level security;   -- no policies → not readable via Data API
 alter table admins      enable row level security;
 alter table profile     enable row level security;
 alter table experiences enable row level security;
@@ -120,14 +135,15 @@ alter table projects    enable row level security;
 alter table posts       enable row level security;
 alter table assets      enable row level security;
 
--- Admins can read their own row; the FIRST authenticated user may self-claim
--- admin while the table is empty (bootstrap). Claim it on your first login.
+-- Admins can read their own row; an allowlisted user self-provisions on login.
 drop policy if exists admins_select_self on admins;
 create policy admins_select_self on admins for select to authenticated
   using (user_id = auth.user_id());
-drop policy if exists admins_bootstrap on admins;
-create policy admins_bootstrap on admins for insert to authenticated
-  with check (user_id = auth.user_id() and public.admins_count() = 0);
+drop policy if exists admins_self_provision on admins;
+create policy admins_self_provision on admins for insert to authenticated
+  with check (user_id = auth.user_id() and public.email_allowed());
+-- To add an admin: insert their Google email into admin_emails, e.g.
+--   insert into admin_emails (email) values ('james@example.com');
 
 -- All content: full access to admins only.
 drop policy if exists profile_admin_all on profile;

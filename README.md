@@ -70,16 +70,22 @@ images) out of the `assets` table and writes them to `apps/web/public/assets/`.
    - **Auth → Configuration → Trusted origins**: same two origins.
 6. Push to `main` → the workflow builds and deploys.
 
-## First login / claiming admin
+## Access control
 
-The `admins` table starts empty. The **first** account to sign in at `/admin` self-claims
-admin (a bootstrap RLS policy that only fires while the table is empty). **Do this immediately**
-after the admin app is live:
+Login is **Google only**. Authorization is an **email allowlist**: a user can edit content
+only if their Google account email is in the `admin_emails` table (enforced by RLS via
+`email_allowed()`, which reads the email from Neon Auth's synced `user` table). Non-allowlisted
+accounts can authenticate but get a "No access" screen.
 
-1. Go to `https://jahuntsmith.com/admin`, **Create account** (email + password).
-2. On success you become the sole admin; the bootstrap policy locks.
+Currently allowed: `mitchellornesmith@gmail.com`.
 
-To add more admins later, insert into `admins` via SQL (their Neon Auth `user_id`).
+To add an admin (e.g. James), insert their Google email:
+
+```sql
+insert into admin_emails (email) values ('james@example.com');
+```
+
+They then sign in with Google at `/admin` and are auto-provisioned on first login.
 
 ## Publishing
 
